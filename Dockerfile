@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:18
 
 WORKDIR /app
 
@@ -9,6 +9,7 @@ COPY . .
 
 ENV NODE_ENV=production
 ENV PORT=8090
+ENV TZ=America/Sao_Paulo
 
 EXPOSE 8090
 
