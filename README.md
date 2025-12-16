@@ -41,7 +41,7 @@
 - Chave de licença válida
 ```bash
 # Clone o repositório
-git clone https://github.com/pastoriniMatheus/papi.git
+git clone https://github.com/mktpastorini/papi.git
 cd pastorini-api
 
 # Configure as variáveis de ambiente
