@@ -1,9 +1,12 @@
-FROM node:18-alpine
+FROM node:20
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install --production
+RUN corepack enable
+
+COPY package.json yarn.lock ./
+
+RUN yarn install --immutable
 
 COPY . .
 
@@ -11,4 +14,4 @@ ENV NODE_ENV=production
 
 EXPOSE 8090
 
-CMD ["npm", "run", "server"]
+CMD ["yarn", "server"]
