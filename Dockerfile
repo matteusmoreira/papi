@@ -1,4 +1,4 @@
-FROM node:20
+FROM node:18
 
 WORKDIR /app
 
@@ -13,4 +13,4 @@ ENV TZ=America/Sao_Paulo
 
 EXPOSE 8090
 
-CMD ["npx", "tsx", "server.ts"]
+CMD ["npx", "tsx", "bootstrap.ts"]
