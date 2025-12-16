@@ -8,7 +8,8 @@ RUN npm install
 COPY . .
 
 ENV NODE_ENV=production
+ENV PORT=8090
 
 EXPOSE 8090
 
-CMD ["npm", "run", "server"]
+CMD ["npx", "tsx", "server.ts"]
