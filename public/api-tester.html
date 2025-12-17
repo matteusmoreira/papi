@@ -975,9 +975,20 @@
             document.getElementById(tab + 'Tab').style.display = 'block';
         }
         
-        // Get API key from URL
+        // Get API key from sessionStorage (set during login) or URL query param (legacy)
         const urlParams = new URLSearchParams(window.location.search);
-        const API_KEY = urlParams.get('key') || '';
+        // Get API key from cookie or URL query param
+        function getApiKey() {
+            const cookies = document.cookie.split(';');
+            for (const cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'panelKey') {
+                    return decodeURIComponent(value);
+                }
+            }
+            return urlParams.get('key') || '';
+        }
+        const API_KEY = getApiKey();
 
         async function sendRequest() {
             if (!currentEndpoint) {
@@ -1096,19 +1107,8 @@
         // Load first endpoint
         document.querySelector('.endpoint-item').click();
         
-        // Preserve API key in navigation links
-        (function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const apiKey = urlParams.get('key');
-            if (apiKey) {
-                document.querySelectorAll('a[href]').forEach(link => {
-                    const href = link.getAttribute('href');
-                    if (href && href.startsWith('/') && !href.includes('?key=')) {
-                        link.setAttribute('href', href + '?key=' + apiKey);
-                    }
-                });
-            }
-        })();
+        // API key is now stored in sessionStorage (handled above)
+        // No need to preserve in URL links anymore
     </script>
     
     <!-- Espaço para o footer fixo -->

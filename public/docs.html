@@ -69,7 +69,7 @@
             width: 280px;
             height: 100vh;
             background: rgba(0,0,0,0.5);
-            padding: 80px 20px 20px;
+            padding: 80px 20px 120px;
             overflow-y: auto;
             border-right: 1px solid rgba(255,255,255,0.1);
             z-index: 100;
@@ -239,6 +239,7 @@
             <li><a href="#install-docker">Docker Swarm</a></li>
             <li><a href="#install-env">Variáveis de Ambiente</a></li>
             <li><a href="#install-panel-key">Proteção do Painel</a></li>
+            <li><a href="#api-auth">Autenticação da API</a></li>
         </ul>
         
         <h3>Instâncias</h3>
@@ -320,7 +321,7 @@
     <div class="main-content">
         <header>
             <img src="/logo-papi.png" alt="Pastorini API" style="height: 60px; margin-bottom: 15px;">
-            <h1 style="font-size: 1.8rem; color: #fff;">Pastorini API <span style="font-size: 0.9rem; background: rgba(16,185,129,0.2); color: #10b981; padding: 4px 12px; border-radius: 20px; margin-left: 10px;">v1.3</span></h1>
+            <h1 style="font-size: 1.8rem; color: #fff;">Pastorini API <span style="font-size: 0.9rem; background: rgba(16,185,129,0.2); color: #10b981; padding: 4px 12px; border-radius: 20px; margin-left: 10px;">v1.4</span></h1>
             <p>Documentação completa de todas as rotas e funcionalidades disponíveis</p>
             <p style="margin-top: 10px; font-size: 0.9rem; color: #10b981;">Powered by Baileys</p>
         </header>
@@ -336,7 +337,7 @@
                         <span class="method post" style="background:#6366f1;">DOCKER</span>
                         <span class="endpoint-path">Docker Swarm / Portainer</span>
                     </div>
-                    <p class="endpoint-desc">Deploy completo com PostgreSQL, Redis, API e Painel Admin usando Docker Swarm. Ideal para produção.</p>
+                    <p class="endpoint-desc">Deploy completo com PostgreSQL, Redis e API usando Docker Swarm. Ideal para produção.</p>
                     
                     <h4 style="color:#00d9ff; margin: 20px 0 10px;">1. Pré-requisitos</h4>
                     <ul style="color:#aaa; margin-left: 20px; line-height: 1.8;">
@@ -400,7 +401,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - LICENSE_KEY=<span class="string">SUA_CHAVE_LICENCA</span>
-      - LICENSE_ADMIN_URL=<span class="string">https://seu-admin.com</span>
+      - LICENSE_ADMIN_URL=<span class="string">https://seu-servidor-licenca.com</span>
     volumes:
       - api_sessions:/app/sessions
       - api_media:/app/Media
@@ -413,29 +414,11 @@ services:
       restart_policy:
         condition: on-failure
 
-  <span class="comment"># Pastorini Admin - Painel de Licenças</span>
-  admin:
-    image: <span class="string">SEU_USUARIO/pastorini-admin:latest</span>
-    environment:
-      - NODE_ENV=production
-      - ADMIN_PORT=4000
-    volumes:
-      - admin_data:/data
-    ports:
-      - "4000:4000"
-    networks:
-      - pastorini-net
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-
 volumes:
   postgres_data:
   redis_data:
   api_sessions:
   api_media:
-  admin_data:
 
 networks:
   pastorini-net:
@@ -520,12 +503,12 @@ docker stack rm pastorini</pre>
                         </tr>
                         <tr>
                             <td><span class="param-name">LICENSE_KEY</span></td>
-                            <td>Chave de licença (obtida no painel admin)</td>
+                            <td>Chave de licença para ativação do servidor</td>
                             <td>-</td>
                         </tr>
                         <tr>
                             <td><span class="param-name">LICENSE_ADMIN_URL</span></td>
-                            <td>URL do servidor admin de licenças</td>
+                            <td>URL do servidor de validação de licenças</td>
                             <td>-</td>
                         </tr>
                     </table>
@@ -553,7 +536,9 @@ PANEL_API_KEY=</pre>
                     <ul style="color:#aaa; margin-left: 20px; line-height: 1.8;">
                         <li>Ao acessar o painel, será exibida uma tela de login</li>
                         <li>Digite a chave configurada em <code>PANEL_API_KEY</code></li>
-                        <li>Você também pode acessar diretamente via URL: <code>https://seu-servidor.com/?key=SUA_CHAVE</code></li>
+                        <li>A autenticação é armazenada em cookie seguro (24 horas)</li>
+                        <li>A chave não aparece na URL do navegador (mais seguro)</li>
+                        <li>Suporta senhas com caracteres especiais</li>
                     </ul>
                     
                     <h4 style="color:#00d9ff; margin: 20px 0 10px;">Páginas Protegidas</h4>
@@ -562,7 +547,101 @@ PANEL_API_KEY=</pre>
                         <li><code>/api-tester.html</code> - Testador de API</li>
                         <li><code>/docs.html</code> - Documentação</li>
                     </ul>
-                    <p class="endpoint-desc" style="margin-top:15px;"><strong>Nota:</strong> As rotas da API (<code>/api/*</code>) não são afetadas pela proteção do painel.</p>
+                    <p class="endpoint-desc" style="margin-top:15px;"><strong>Nota:</strong> As rotas da API também são protegidas quando PANEL_API_KEY está configurada. Veja a seção "Autenticação da API" abaixo.</p>
+                </div>
+                
+                <div class="endpoint" id="api-auth">
+                    <div class="endpoint-header">
+                        <span class="method post" style="background:#8b5cf6;">🔑</span>
+                        <span class="endpoint-path">Autenticação da API (x-api-key)</span>
+                        <span class="badge new">IMPORTANTE</span>
+                    </div>
+                    <p class="endpoint-desc">Quando <code>PANEL_API_KEY</code> está configurada, todas as rotas da API (exceto algumas públicas) requerem autenticação. A mesma chave usada para acessar o painel é usada para autenticar as requisições da API.</p>
+                    
+                    <h4 style="color:#00d9ff; margin: 20px 0 10px;">Como Autenticar</h4>
+                    <p class="endpoint-desc">Você pode enviar a chave de 3 formas (em ordem de preferência):</p>
+                    <table class="params-table">
+                        <tr><th>Método</th><th>Exemplo</th><th>Recomendado</th></tr>
+                        <tr>
+                            <td><span class="param-name">Header x-api-key</span></td>
+                            <td><code>x-api-key: SUA_CHAVE</code></td>
+                            <td><span style="color:#10b981;">✓ Sim</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="param-name">Header Authorization</span></td>
+                            <td><code>Authorization: Bearer SUA_CHAVE</code></td>
+                            <td><span style="color:#10b981;">✓ Sim</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="param-name">Query Parameter</span></td>
+                            <td><code>?key=SUA_CHAVE</code></td>
+                            <td><span style="color:#f59e0b;">⚠ Não (expõe na URL)</span></td>
+                        </tr>
+                    </table>
+                    
+                    <h4 style="color:#00d9ff; margin: 20px 0 10px;">Exemplo com cURL</h4>
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i> Copiar</button>
+                        <pre><span class="comment"># Usando header x-api-key (recomendado)</span>
+curl -X GET "https://seu-servidor.com/api/instances" \
+  -H "x-api-key: SUA_CHAVE"
+
+<span class="comment"># Usando Authorization Bearer</span>
+curl -X GET "https://seu-servidor.com/api/instances" \
+  -H "Authorization: Bearer SUA_CHAVE"
+
+<span class="comment"># Enviando mensagem com autenticação</span>
+curl -X POST "https://seu-servidor.com/api/instances/minha-instancia/send-text" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: SUA_CHAVE" \
+  -d '{"jid": "5511999999999@s.whatsapp.net", "text": "Olá!"}'</pre>
+                    </div>
+                    
+                    <h4 style="color:#00d9ff; margin: 20px 0 10px;">Exemplo com JavaScript/Node.js</h4>
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i> Copiar</button>
+                        <pre><span class="comment">// Usando fetch</span>
+const response = await fetch('https://seu-servidor.com/api/instances', {
+  headers: {
+    'x-api-key': 'SUA_CHAVE'
+  }
+});
+const instances = await response.json();
+
+<span class="comment">// Enviando mensagem</span>
+const sendResponse = await fetch('https://seu-servidor.com/api/instances/minha-instancia/send-text', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'SUA_CHAVE'
+  },
+  body: JSON.stringify({
+    jid: '5511999999999@s.whatsapp.net',
+    text: 'Olá!'
+  })
+});</pre>
+                    </div>
+                    
+                    <h4 style="color:#00d9ff; margin: 20px 0 10px;">Rotas Públicas (não requerem autenticação)</h4>
+                    <ul style="color:#aaa; margin-left: 20px; line-height: 1.8;">
+                        <li><code>/api/stats</code> - Estatísticas do servidor</li>
+                        <li><code>/api/license/status</code> - Status da licença</li>
+                        <li><code>/api/instances/:id/public-status</code> - Status público (para QR client)</li>
+                    </ul>
+                    
+                    <h4 style="color:#00d9ff; margin: 20px 0 10px;">Resposta de Erro (401)</h4>
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i> Copiar</button>
+                        <pre><span class="comment">// Quando a chave não é fornecida ou é inválida</span>
+{
+  <span class="key">"error"</span>: <span class="string">"Unauthorized"</span>,
+  <span class="key">"message"</span>: <span class="string">"API key required. Provide via x-api-key header, Authorization: Bearer &lt;key&gt;, or ?key= query param"</span>
+}</pre>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(139, 92, 246, 0.1); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.3);">
+                        <p style="color: #a78bfa; margin: 0;"><i class="fas fa-info-circle"></i> <strong>Dica:</strong> A chave da API é a mesma configurada em <code>PANEL_API_KEY</code>. Não existe uma chave por instância - é uma única chave global para todo o servidor.</p>
+                    </div>
                 </div>
             </div>
 
@@ -843,64 +922,130 @@ PANEL_API_KEY=</pre>
                         <span class="endpoint-path">Eventos Disponíveis</span>
                     </div>
                     <p class="endpoint-desc">Lista de todos os eventos que podem ser configurados no webhook:</p>
+                    <h4 style="color:#10b981; margin: 15px 0 10px;"><i class="fas fa-message"></i> Mensagens</h4>
                     <table class="params-table">
                         <tr><th>Evento</th><th>Descrição</th></tr>
-                        <tr><td><span class="param-name">messages</span></td><td>Mensagens recebidas (texto, mídia, etc)</td></tr>
-                        <tr><td><span class="param-name">message_status</span></td><td>Status de mensagens (enviado, entregue, lido)</td></tr>
-                        <tr><td><span class="param-name">message_reaction</span></td><td>Reações em mensagens (emoji)</td></tr>
-                        <tr><td><span class="param-name">presence</span></td><td>Presença online/offline/digitando</td></tr>
-                        <tr><td><span class="param-name">group_update</span></td><td>Atualizações de grupos (nome, foto, descrição)</td></tr>
-                        <tr><td><span class="param-name">group_participants</span></td><td>Entrada/saída de participantes em grupos</td></tr>
-                        <tr><td><span class="param-name">call</span></td><td>Chamadas recebidas/perdidas</td></tr>
-                        <tr><td><span class="param-name">contacts</span></td><td>Atualizações de contatos</td></tr>
-                        <tr><td><span class="param-name">chats</span></td><td>Atualizações de conversas</td></tr>
-                        <tr><td><span class="param-name">labels</span></td><td>Labels/etiquetas aplicadas</td></tr>
+                        <tr><td><span class="param-name">messages</span></td><td>Mensagens recebidas (texto, imagem, vídeo, áudio, documento, localização, contato, sticker)</td></tr>
+                        <tr><td><span class="param-name">message_status</span></td><td>Status de mensagens enviadas (2=enviado, 3=entregue, 4=lido)</td></tr>
+                        <tr><td><span class="param-name">message_reaction</span></td><td>Reações em mensagens (emoji adicionado/removido)</td></tr>
                     </table>
+                    
+                    <h4 style="color:#3b82f6; margin: 20px 0 10px;"><i class="fas fa-users"></i> Grupos</h4>
+                    <table class="params-table">
+                        <tr><th>Evento</th><th>Descrição</th></tr>
+                        <tr><td><span class="param-name">group_update</span></td><td>Atualizações de grupos (nome, foto, descrição alterados)</td></tr>
+                        <tr><td><span class="param-name">group_participants</span></td><td>Participantes de grupos (entrada, saída, promoção, rebaixamento)</td></tr>
+                    </table>
+                    
+                    <h4 style="color:#f59e0b; margin: 20px 0 10px;"><i class="fas fa-user"></i> Contatos & Presença</h4>
+                    <table class="params-table">
+                        <tr><th>Evento</th><th>Descrição</th></tr>
+                        <tr><td><span class="param-name">presence</span></td><td>Presença de contatos (available, unavailable, composing, recording, paused)</td></tr>
+                        <tr><td><span class="param-name">contacts</span></td><td>Atualizações de contatos (nome, foto de perfil)</td></tr>
+                    </table>
+                    
+                    <h4 style="color:#8b5cf6; margin: 20px 0 10px;"><i class="fas fa-phone"></i> Chamadas</h4>
+                    <table class="params-table">
+                        <tr><th>Evento</th><th>Descrição</th></tr>
+                        <tr><td><span class="param-name">call</span></td><td>Chamadas de voz/vídeo (ringing, accepted, rejected, timeout)</td></tr>
+                    </table>
+                    
+                    <h4 style="color:#ec4899; margin: 20px 0 10px;"><i class="fas fa-cog"></i> Outros</h4>
+                    <table class="params-table">
+                        <tr><th>Evento</th><th>Descrição</th></tr>
+                        <tr><td><span class="param-name">chats</span></td><td>Atualizações de conversas (arquivado, fixado, silenciado)</td></tr>
+                        <tr><td><span class="param-name">labels</span></td><td>Labels/etiquetas (associação e edição)</td></tr>
+                        <tr><td><span class="param-name">history_sync</span></td><td>Sincronização de histórico (quando conecta)</td></tr>
+                        <tr><td><span class="param-name">all</span></td><td><strong>Receber TODOS os eventos</strong></td></tr>
+                    </table>
+                    <h4 style="color:#00d9ff; margin: 20px 0 10px;">Headers enviados em cada webhook</h4>
                     <div class="code-block">
                         <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i> Copiar</button>
-                        <pre><span class="comment">// Headers enviados em cada webhook</span>
-Content-Type: application/json
+                        <pre>Content-Type: application/json
 X-Instance-ID: minha-instancia
-X-Event-Type: messages | message_status | message_reaction | ...
-
-<span class="comment">// Payload de mensagem recebida (messages)</span>
+X-Event-Type: messages | message_status | message_reaction | group_update | ...</pre>
+                    </div>
+                    
+                    <h4 style="color:#00d9ff; margin: 20px 0 10px;">Exemplos de Payload</h4>
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i> Copiar</button>
+                        <pre><span class="comment">// Mensagem recebida (messages)</span>
 {
   <span class="key">"type"</span>: <span class="string">"message"</span>,
   <span class="key">"instanceId"</span>: <span class="string">"minha-instancia"</span>,
   <span class="key">"data"</span>: {
-    <span class="key">"key"</span>: { <span class="key">"remoteJid"</span>: <span class="string">"5511999999999@s.whatsapp.net"</span>, <span class="key">"id"</span>: <span class="string">"ABC123"</span> },
+    <span class="key">"key"</span>: { <span class="key">"remoteJid"</span>: <span class="string">"5511999999999@s.whatsapp.net"</span>, <span class="key">"id"</span>: <span class="string">"ABC123"</span>, <span class="key">"fromMe"</span>: <span class="number">false</span> },
     <span class="key">"message"</span>: { <span class="key">"conversation"</span>: <span class="string">"Olá!"</span> },
     <span class="key">"pushName"</span>: <span class="string">"João"</span>,
     <span class="key">"messageTimestamp"</span>: <span class="number">1702500000</span>
   }
 }
 
-<span class="comment">// Payload de status (message_status)</span>
+<span class="comment">// Status de mensagem (message_status)</span>
 {
   <span class="key">"type"</span>: <span class="string">"message_status"</span>,
   <span class="key">"instanceId"</span>: <span class="string">"minha-instancia"</span>,
-  <span class="key">"data"</span>: { <span class="key">"status"</span>: <span class="number">3</span> } <span class="comment">// 2=enviado, 3=entregue, 4=lido</span>
+  <span class="key">"data"</span>: {
+    <span class="key">"key"</span>: { <span class="key">"remoteJid"</span>: <span class="string">"5511999999999@s.whatsapp.net"</span>, <span class="key">"id"</span>: <span class="string">"ABC123"</span> },
+    <span class="key">"update"</span>: { <span class="key">"status"</span>: <span class="number">3</span> }  <span class="comment">// 2=enviado, 3=entregue, 4=lido</span>
+  }
 }
 
-<span class="comment">// Payload de reação (message_reaction)</span>
+<span class="comment">// Reação em mensagem (message_reaction)</span>
 {
   <span class="key">"type"</span>: <span class="string">"message_reaction"</span>,
   <span class="key">"instanceId"</span>: <span class="string">"minha-instancia"</span>,
-  <span class="key">"data"</span>: [{ <span class="key">"key"</span>: {...}, <span class="key">"reaction"</span>: { <span class="key">"text"</span>: <span class="string">"👍"</span> } }]
+  <span class="key">"data"</span>: [{
+    <span class="key">"key"</span>: { <span class="key">"remoteJid"</span>: <span class="string">"5511999999999@s.whatsapp.net"</span>, <span class="key">"id"</span>: <span class="string">"MSG_ID"</span> },
+    <span class="key">"reaction"</span>: { <span class="key">"text"</span>: <span class="string">"👍"</span>, <span class="key">"senderTimestampMs"</span>: <span class="number">1702500000</span> }
+  }]
 }
 
-<span class="comment">// Payload de presença (presence)</span>
+<span class="comment">// Atualização de grupo (group_update)</span>
+{
+  <span class="key">"type"</span>: <span class="string">"group_update"</span>,
+  <span class="key">"instanceId"</span>: <span class="string">"minha-instancia"</span>,
+  <span class="key">"data"</span>: [{
+    <span class="key">"id"</span>: <span class="string">"123456789@g.us"</span>,
+    <span class="key">"subject"</span>: <span class="string">"Novo Nome do Grupo"</span>,
+    <span class="key">"desc"</span>: <span class="string">"Nova descrição"</span>
+  }]
+}
+
+<span class="comment">// Participantes de grupo (group_participants)</span>
+{
+  <span class="key">"type"</span>: <span class="string">"group_participants"</span>,
+  <span class="key">"instanceId"</span>: <span class="string">"minha-instancia"</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"id"</span>: <span class="string">"123456789@g.us"</span>,
+    <span class="key">"participants"</span>: [<span class="string">"5511999999999@s.whatsapp.net"</span>],
+    <span class="key">"action"</span>: <span class="string">"add"</span>  <span class="comment">// add, remove, promote, demote</span>
+  }
+}
+
+<span class="comment">// Presença (presence)</span>
 {
   <span class="key">"type"</span>: <span class="string">"presence"</span>,
   <span class="key">"instanceId"</span>: <span class="string">"minha-instancia"</span>,
-  <span class="key">"data"</span>: { <span class="key">"id"</span>: <span class="string">"5511999999999@s.whatsapp.net"</span>, <span class="key">"presences"</span>: { <span class="string">"available"</span> } }
+  <span class="key">"data"</span>: {
+    <span class="key">"id"</span>: <span class="string">"5511999999999@s.whatsapp.net"</span>,
+    <span class="key">"presences"</span>: {
+      <span class="string">"5511999999999@s.whatsapp.net"</span>: { <span class="key">"lastKnownPresence"</span>: <span class="string">"composing"</span> }
+    }
+  }
 }
 
-<span class="comment">// Payload de chamada (call)</span>
+<span class="comment">// Chamada (call)</span>
 {
   <span class="key">"type"</span>: <span class="string">"call"</span>,
   <span class="key">"instanceId"</span>: <span class="string">"minha-instancia"</span>,
-  <span class="key">"data"</span>: [{ <span class="key">"from"</span>: <span class="string">"5511999999999@s.whatsapp.net"</span>, <span class="key">"status"</span>: <span class="string">"ringing"</span> }]
+  <span class="key">"data"</span>: [{
+    <span class="key">"from"</span>: <span class="string">"5511999999999@s.whatsapp.net"</span>,
+    <span class="key">"id"</span>: <span class="string">"CALL_ID"</span>,
+    <span class="key">"status"</span>: <span class="string">"ringing"</span>,  <span class="comment">// ringing, accepted, rejected, timeout</span>
+    <span class="key">"isVideo"</span>: <span class="number">false</span>,
+    <span class="key">"isGroup"</span>: <span class="number">false</span>
+  }]
 }</pre>
                     </div>
                 </div>

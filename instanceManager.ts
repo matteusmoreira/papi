@@ -291,6 +291,17 @@ class InstanceManager {
                 // Ignora mensagens enviadas por nós mesmos
                 if (msg.key.fromMe) continue
                 
+                // Ignora mensagens de reação (são tratadas pelo evento messages.reaction)
+                if (msg.message?.reactionMessage) {
+                    console.log(`[${id}] Reaction message ignored in messages.upsert (handled by messages.reaction)`)
+                    continue
+                }
+                
+                // Ignora mensagens de protocolo/sistema
+                if (msg.message?.protocolMessage || msg.message?.senderKeyDistributionMessage) {
+                    continue
+                }
+                
                 console.log(`[${id}] New message received:`, msg.key.remoteJid)
                 
                 // Envia para webhook se configurado
@@ -387,6 +398,30 @@ class InstanceManager {
                 type: 'label_association',
                 instanceId: id,
                 data: label
+            })
+        })
+
+        // Listener para edição de labels
+        sock.ev.on('labels.edit', async (label) => {
+            await this.sendWebhook(id, 'labels', {
+                type: 'label_edit',
+                instanceId: id,
+                data: label
+            })
+        })
+
+        // Listener para histórico de mensagens (quando sincroniza)
+        sock.ev.on('messaging-history.set', async (history) => {
+            // Este evento é muito pesado, só envia se explicitamente habilitado
+            await this.sendWebhook(id, 'history_sync', {
+                type: 'history_sync',
+                instanceId: id,
+                data: {
+                    chatsCount: history.chats?.length || 0,
+                    contactsCount: history.contacts?.length || 0,
+                    messagesCount: history.messages?.length || 0,
+                    isLatest: history.isLatest
+                }
             })
         })
 

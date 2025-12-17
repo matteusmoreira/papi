@@ -1,9 +1,22 @@
 // API URL - usa o mesmo host/porta que está servindo a página
 const API_URL = '/api';
 
-// Get API key from URL query param (passed when accessing panel)
-const urlParams = new URLSearchParams(window.location.search);
-const API_KEY = urlParams.get('key') || '';
+// Get API key from cookie or URL query param
+function getApiKey() {
+    // Try to get from cookie first
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'panelKey') {
+            return decodeURIComponent(value);
+        }
+    }
+    // Fallback to URL param
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('key') || '';
+}
+
+const API_KEY = getApiKey();
 
 // Helper function to make authenticated API calls
 async function apiFetch(url, options = {}) {
@@ -416,10 +429,19 @@ async function openSettings(id) {
             
             // Marca os eventos configurados
             const events = data.webhook.events || [];
-            document.querySelectorAll('.event-checkbox').forEach(cb => {
-                const eventName = cb.dataset.event;
-                cb.checked = events.includes(eventName) || events.includes('all');
-            });
+            
+            // Se "all" está nos eventos, marca apenas o checkbox "all"
+            if (events.includes('all')) {
+                document.querySelector('[data-event="all"]').checked = true;
+            } else {
+                // Marca os eventos individuais
+                document.querySelectorAll('.event-checkbox').forEach(cb => {
+                    const eventName = cb.dataset.event;
+                    if (eventName !== 'all') {
+                        cb.checked = events.includes(eventName);
+                    }
+                });
+            }
         } else {
             document.getElementById('webhookUrl').value = '';
             document.getElementById('webhookEnabled').checked = false;
@@ -432,15 +454,58 @@ async function openSettings(id) {
     }
 }
 
+// Lógica para o checkbox "all" - quando marcado, desmarca os outros
+document.addEventListener('DOMContentLoaded', function() {
+    const allCheckbox = document.querySelector('[data-event="all"]');
+    const otherCheckboxes = document.querySelectorAll('.event-checkbox:not([data-event="all"])');
+    
+    if (allCheckbox) {
+        allCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                // Desmarca todos os outros
+                otherCheckboxes.forEach(cb => cb.checked = false);
+            }
+        });
+    }
+    
+    // Quando marca qualquer outro, desmarca "all"
+    otherCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            if (this.checked && allCheckbox) {
+                allCheckbox.checked = false;
+            }
+        });
+    });
+});
+
 async function saveWebhookSettings() {
     const url = document.getElementById('webhookUrl').value;
     const enabled = document.getElementById('webhookEnabled').checked;
-    const events = [];
+    let events = [];
     
-    // Coleta todos os eventos marcados
-    document.querySelectorAll('.event-checkbox:checked').forEach(cb => {
-        events.push(cb.dataset.event);
-    });
+    // Verifica se "all" está marcado
+    const allCheckbox = document.querySelector('[data-event="all"]');
+    if (allCheckbox && allCheckbox.checked) {
+        events = ['all'];
+    } else {
+        // Coleta todos os eventos marcados (exceto "all")
+        document.querySelectorAll('.event-checkbox:checked').forEach(cb => {
+            if (cb.dataset.event !== 'all') {
+                events.push(cb.dataset.event);
+            }
+        });
+    }
+    
+    // Validação
+    if (enabled && !url) {
+        alert('Por favor, informe a URL do webhook');
+        return;
+    }
+    
+    if (enabled && events.length === 0) {
+        alert('Por favor, selecione pelo menos um evento');
+        return;
+    }
     
     try {
         const res = await apiFetch(`${API_URL}/instances/${settingsInstanceId}/webhook`, {
