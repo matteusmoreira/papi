@@ -21,7 +21,7 @@
             <div class="logo">
                 <img src="/logo-papi.png" alt="Pastorini API" style="height: 42px; margin-right: 12px;">
                 <h1 style="font-size: 1.2rem; color: #fff; font-weight: 500;">Pastorini API</h1>
-                <span class="version-badge">v1.3</span>
+                <span class="version-badge">v1.4</span>
             </div>
             <div class="header-buttons">
                 <a href="/api-tester.html" class="header-link">
@@ -203,46 +203,86 @@
                     
                     <div class="form-group">
                         <label>Eventos para receber:</label>
-                        <div class="checkbox-group events-grid">
-                            <label class="checkbox-label">
-                                <input type="checkbox" class="event-checkbox" data-event="messages" checked>
-                                <span><i class="fa-solid fa-message"></i> Mensagens recebidas</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" class="event-checkbox" data-event="message_status" checked>
-                                <span><i class="fa-solid fa-check-double"></i> Status de mensagens</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" class="event-checkbox" data-event="message_reaction">
-                                <span><i class="fa-solid fa-heart"></i> Reações</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" class="event-checkbox" data-event="presence">
-                                <span><i class="fa-solid fa-circle"></i> Presença (online/digitando)</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" class="event-checkbox" data-event="group_update">
-                                <span><i class="fa-solid fa-users"></i> Atualizações de grupos</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" class="event-checkbox" data-event="group_participants">
-                                <span><i class="fa-solid fa-user-plus"></i> Participantes de grupos</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" class="event-checkbox" data-event="call">
-                                <span><i class="fa-solid fa-phone"></i> Chamadas</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" class="event-checkbox" data-event="contacts">
-                                <span><i class="fa-solid fa-address-book"></i> Contatos</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" class="event-checkbox" data-event="chats">
-                                <span><i class="fa-solid fa-comments"></i> Chats</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" class="event-checkbox" data-event="labels">
-                                <span><i class="fa-solid fa-tag"></i> Labels/Etiquetas</span>
+                        <p class="hint" style="margin-bottom: 10px; font-size: 0.8rem;">Selecione quais eventos deseja receber no webhook</p>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #10b981; font-size: 0.85rem;"><i class="fa-solid fa-message"></i> Mensagens</strong>
+                            <div class="checkbox-group events-grid" style="margin-top: 8px;">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="event-checkbox" data-event="messages" checked>
+                                    <span>Mensagens recebidas</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="event-checkbox" data-event="message_status" checked>
+                                    <span>Status (enviado/entregue/lido)</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="event-checkbox" data-event="message_reaction">
+                                    <span>Reações (emoji)</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #3b82f6; font-size: 0.85rem;"><i class="fa-solid fa-users"></i> Grupos</strong>
+                            <div class="checkbox-group events-grid" style="margin-top: 8px;">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="event-checkbox" data-event="group_update">
+                                    <span>Atualizações (nome/foto/desc)</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="event-checkbox" data-event="group_participants">
+                                    <span>Participantes (entrada/saída)</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #f59e0b; font-size: 0.85rem;"><i class="fa-solid fa-user"></i> Contatos & Presença</strong>
+                            <div class="checkbox-group events-grid" style="margin-top: 8px;">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="event-checkbox" data-event="presence">
+                                    <span>Presença (online/digitando)</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="event-checkbox" data-event="contacts">
+                                    <span>Atualizações de contatos</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #8b5cf6; font-size: 0.85rem;"><i class="fa-solid fa-phone"></i> Chamadas</strong>
+                            <div class="checkbox-group events-grid" style="margin-top: 8px;">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="event-checkbox" data-event="call">
+                                    <span>Chamadas de voz/vídeo</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #ec4899; font-size: 0.85rem;"><i class="fa-solid fa-cog"></i> Outros</strong>
+                            <div class="checkbox-group events-grid" style="margin-top: 8px;">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="event-checkbox" data-event="chats">
+                                    <span>Atualizações de chats</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="event-checkbox" data-event="labels">
+                                    <span>Labels/Etiquetas</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="event-checkbox" data-event="history_sync">
+                                    <span>Sincronização de histórico</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background: rgba(16,185,129,0.1); border-radius: 8px; border: 1px solid rgba(16,185,129,0.2);">
+                            <label class="checkbox-label" style="margin: 0;">
+                                <input type="checkbox" class="event-checkbox" data-event="all">
+                                <span style="color: #10b981; font-weight: 600;"><i class="fa-solid fa-check-double"></i> Receber TODOS os eventos</span>
                             </label>
                         </div>
                     </div>
@@ -384,17 +424,13 @@
             new MutationObserver(checkFooter).observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
         })();
         
-        // Preserve API key in navigation links
+        // API key is now stored in cookie by server
+        // Clean URL if key param is present (after redirect)
         (function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const apiKey = urlParams.get('key');
-            if (apiKey) {
-                document.querySelectorAll('a[href]').forEach(link => {
-                    const href = link.getAttribute('href');
-                    if (href && href.startsWith('/') && !href.includes('?key=')) {
-                        link.setAttribute('href', href + '?key=' + apiKey);
-                    }
-                });
+            if (urlParams.get('key')) {
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
             }
         })();
     </script>

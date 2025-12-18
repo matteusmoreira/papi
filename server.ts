@@ -9,6 +9,7 @@
 import 'dotenv/config'
 import express, { type Request, type Response, type NextFunction } from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import path from 'path'
 import os from 'os'
 import instanceManager from './instanceManager'
@@ -29,6 +30,7 @@ const PANEL_API_KEY = process.env.PANEL_API_KEY || ''
 
 
 app.use(cors())
+app.use(cookieParser())
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
 
@@ -55,16 +57,31 @@ const panelAuthMiddleware = (req: Request, res: Response, next: NextFunction) =>
         return next()
     }
     
-    // Check for API key in query param
-    const providedKey = req.query.key as string
+    // Check for API key in multiple places:
+    // 1. Cookie (preferred - secure)
+    // 2. Query param: ?key=xxx
+    const cookieKey = req.cookies?.panelKey
+    const queryKey = req.query.key as string
     
-    // Valid key - allow access
-    if (providedKey && providedKey === PANEL_API_KEY) {
+    // Valid key via cookie - allow access
+    if (cookieKey && cookieKey === PANEL_API_KEY) {
         return next()
     }
     
-    // Invalid key provided
-    if (providedKey && providedKey !== PANEL_API_KEY) {
+    // If key provided via query param and is valid, set cookie and redirect to clean URL
+    if (queryKey && queryKey === PANEL_API_KEY) {
+        res.cookie('panelKey', queryKey, { 
+            httpOnly: false, // Allow JS to read for API calls
+            secure: false,   // Allow HTTP for development
+            sameSite: 'lax',
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        })
+        // Store in session for API calls
+        return res.redirect(req.path)
+    }
+    
+    // Invalid key provided via query
+    if (queryKey && queryKey !== PANEL_API_KEY) {
         return res.status(401).send(`
             <!DOCTYPE html>
             <html>
@@ -79,7 +96,7 @@ const panelAuthMiddleware = (req: Request, res: Response, next: NextFunction) =>
         `)
     }
     
-    // No key - show login form (redirect to same page with key)
+    // No key - show login form
     return res.send(`
         <!DOCTYPE html>
         <html>
@@ -87,21 +104,23 @@ const panelAuthMiddleware = (req: Request, res: Response, next: NextFunction) =>
             <title>Acesso ao Painel</title>
             <style>
                 body { font-family: Arial, sans-serif; background: #111; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-                .login-box { background: #1a1a1a; padding: 40px; border-radius: 12px; text-align: center; }
+                .login-box { background: #1a1a1a; padding: 40px; border-radius: 12px; text-align: center; max-width: 400px; }
                 h1 { color: #10b981; margin-bottom: 20px; }
-                input { padding: 12px; width: 250px; border: 1px solid #333; border-radius: 8px; background: #222; color: #fff; margin-bottom: 15px; }
-                button { padding: 12px 30px; background: #10b981; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+                input { padding: 12px; width: 100%; border: 1px solid #333; border-radius: 8px; background: #222; color: #fff; margin-bottom: 15px; box-sizing: border-box; }
+                button { padding: 12px 30px; background: #10b981; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
                 button:hover { background: #059669; }
+                .hint { color: #666; font-size: 0.8rem; margin-top: 15px; }
             </style>
         </head>
         <body>
             <div class="login-box">
                 <h1>🔐 Pastorini API</h1>
                 <p style="color:#888;margin-bottom:20px;">Digite a chave de acesso ao painel</p>
-                <form onsubmit="event.preventDefault(); window.location.href='${req.path}?key=' + document.getElementById('key').value;">
+                <form onsubmit="event.preventDefault(); const k=document.getElementById('key').value; if(k) window.location.href='${req.path}?key='+encodeURIComponent(k);">
                     <input type="password" id="key" placeholder="API Key" autofocus><br>
                     <button type="submit">Entrar</button>
                 </form>
+                <p class="hint">A chave é definida na variável PANEL_API_KEY</p>
             </div>
         </body>
         </html>
@@ -126,6 +145,8 @@ const apiAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
         '/api/license/status',           // License status check
         '/api/activate',                 // License activation
         '/api/heartbeat',                // License heartbeat
+        '/api/panel/auth',               // Panel authentication (login)
+        '/api/panel/logout',             // Panel logout
     ]
     
     // Check if it's a public route
@@ -193,6 +214,34 @@ const licenseMiddleware = (req: Request, res: Response, next: NextFunction) => {
 }
 
 app.use(licenseMiddleware)
+
+// Panel authentication endpoint (POST to avoid key in URL)
+app.post('/api/panel/auth', (req: Request, res: Response) => {
+    const { key } = req.body
+    
+    if (!PANEL_API_KEY) {
+        return res.json({ success: true, message: 'No authentication required' })
+    }
+    
+    if (key && key === PANEL_API_KEY) {
+        // Set secure cookie
+        res.cookie('panelKey', key, { 
+            httpOnly: true, 
+            secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        })
+        return res.json({ success: true })
+    }
+    
+    return res.status(401).json({ error: 'Invalid key' })
+})
+
+// Panel logout endpoint
+app.post('/api/panel/logout', (req: Request, res: Response) => {
+    res.clearCookie('panelKey')
+    return res.json({ success: true })
+})
 
 /**
  * Normaliza um número de telefone para o formato JID do WhatsApp
